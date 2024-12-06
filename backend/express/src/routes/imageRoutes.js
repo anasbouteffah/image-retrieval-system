@@ -8,9 +8,10 @@ const {
   uploadImage,
   listImages,
   deleteImage,
+  deleteMultipleImages,
 } = require("../controllers/imageController");
 
-// Configure Multer storage
+// Setup multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = path.join(__dirname, "../uploads");
@@ -27,8 +28,9 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Routes
-router.post("/upload", upload.single("image"), uploadImage); // Apply middleware here
-router.get("/list", listImages);
+router.post("/upload", upload.single("image"), uploadImage); // Upload image
+router.get("/list", listImages); // List images
 router.delete("/:id", deleteImage);
+router.delete("/multiple", deleteMultipleImages); // Delete multiple images
 
 module.exports = router;

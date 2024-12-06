@@ -20,6 +20,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads"))); // Serve static files
 
+// Routes
 app.get("/", (req, res) => {
   res.send("Express Backend is running!");
 });

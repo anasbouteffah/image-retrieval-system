@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const Image = require("../models/imageModel"); // Image model to save data to MongoDB
+const Image = require("../models/imageModel");
 
 // Upload Image
 const uploadImage = (req, res) => {
@@ -16,67 +16,84 @@ const uploadImage = (req, res) => {
       size: req.file.size,
     });
 
-    // Save image metadata to the database
     image
       .save()
       .then((savedImage) => {
-        console.log("Uploaded file:", req.file);
         res.status(200).json({
           message: "Image uploaded successfully!",
           file: req.file,
-          dbRecord: savedImage, // Return saved metadata
+          dbRecord: savedImage,
         });
       })
-      .catch((dbErr) => {
-        console.error("Error saving to database:", dbErr);
+      .catch((err) => {
+        console.error("Error saving to database:", err);
         res
           .status(500)
           .json({ error: "Failed to save image metadata to database" });
       });
   } catch (err) {
     console.error("Error during upload:", err);
-    res.status(400).json({ error: err.message });
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
 // List Images
-const listImages = async (req, res) => {
-  try {
-    // Retrieve images from MongoDB
-    const images = await Image.find({});
-
-    // Map over the images and add a URL field for each image
-    const imagesWithUrls = images.map((image) => ({
-      filename: image.filename,
-      url: `http://localhost:${process.env.PORT || 5000}/uploads/${
-        image.filename
-      }`,
-      size: image.size,
-      uploadDate: image.uploadDate,
-    }));
-
-    res.status(200).json({ images: imagesWithUrls });
-  } catch (err) {
-    console.error("Error fetching images:", err);
-    res.status(500).json({ error: "Failed to fetch images from the database" });
-  }
+const listImages = (req, res) => {
+  Image.find()
+    .then((images) => {
+      res.status(200).json({ images });
+    })
+    .catch((err) => {
+      console.error("Error fetching images:", err);
+      res.status(500).json({ error: "Failed to fetch images" });
+    });
 };
 
 // Delete Image
-const deleteImage = (req, res) => {
-  const imagePath = path.join(__dirname, "../uploads", req.params.id);
+const deleteImage = async (req, res) => {
+  const imageName = req.params.id; // Get the image filename from the URL parameter
+  const imagePath = path.join(__dirname, "../uploads", imageName);
 
   if (!fs.existsSync(imagePath)) {
-    return res.status(404).json({ error: "File not found" });
+    return res.status(404).json({ error: "Image not found" });
   }
 
-  fs.unlink(imagePath, (err) => {
-    if (err) {
-      return res.status(500).json({ error: "Failed to delete file" });
-    }
+  try {
+    // Delete the file from the filesystem
+    fs.unlinkSync(imagePath);
+
+    // Delete the image record from MongoDB
+    await Image.deleteOne({ filename: imageName });
 
     res.status(200).json({ message: "Image deleted successfully" });
-  });
+  } catch (err) {
+    console.error("Error during deletion:", err);
+    res.status(500).json({ error: "Failed to delete image" });
+  }
 };
 
-module.exports = { uploadImage, listImages, deleteImage };
+
+// Delete Multiple Images
+const deleteMultipleImages = async (req, res) => {
+  const imagesToDelete = req.body.images;
+
+  try {
+    // Delete files from disk
+    imagesToDelete.forEach((imageName) => {
+      const imagePath = path.join(__dirname, "../uploads", imageName);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath); // Delete file
+      }
+    });
+
+    // Delete records from MongoDB
+    await Image.deleteMany({ filename: { $in: imagesToDelete } });
+
+    res.status(200).json({ message: "Images deleted successfully" });
+  } catch (err) {
+    console.error("Error during multiple deletions:", err);
+    res.status(500).json({ error: "Failed to delete images" });
+  }
+};
+
+module.exports = { uploadImage, listImages, deleteImage, deleteMultipleImages };
