@@ -2,6 +2,17 @@ const fs = require("fs");
 const path = require("path");
 const Image = require("../models/imageModel");
 
+// Allowed categories for images
+const allowedCategories = [
+  "Resident",
+  "Forest",
+  "Industry",
+  "Agriculture",
+  "Park",
+  "Urban",
+  "River",
+];
+
 // Upload Image
 const uploadImage = (req, res) => {
   if (!req.file) {
@@ -9,7 +20,6 @@ const uploadImage = (req, res) => {
   }
 
   try {
-    // Save metadata to MongoDB
     const image = new Image({
       filename: req.file.filename,
       path: req.file.path,
@@ -51,7 +61,7 @@ const listImages = (req, res) => {
 
 // Delete Image
 const deleteImage = async (req, res) => {
-  const imageName = req.params.id; // Get the image filename from the URL parameter
+  const imageName = req.params.id;
   const imagePath = path.join(__dirname, "../uploads", imageName);
 
   if (!fs.existsSync(imagePath)) {
@@ -59,10 +69,7 @@ const deleteImage = async (req, res) => {
   }
 
   try {
-    // Delete the file from the filesystem
     fs.unlinkSync(imagePath);
-
-    // Delete the image record from MongoDB
     await Image.deleteOne({ filename: imageName });
 
     res.status(200).json({ message: "Image deleted successfully" });
@@ -72,28 +79,67 @@ const deleteImage = async (req, res) => {
   }
 };
 
+// Assign Category to Image
+const assignCategory = async (req, res) => {
+  const { imageId, category } = req.body;
 
-// Delete Multiple Images
-const deleteMultipleImages = async (req, res) => {
-  const imagesToDelete = req.body.images;
+  if (!allowedCategories.includes(category)) {
+    return res
+      .status(400)
+      .json({
+        error: `Invalid category. Allowed categories are: ${allowedCategories.join(
+          ", "
+        )}`,
+      });
+  }
 
   try {
-    // Delete files from disk
-    imagesToDelete.forEach((imageName) => {
-      const imagePath = path.join(__dirname, "../uploads", imageName);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath); // Delete file
-      }
-    });
+    const updatedImage = await Image.findByIdAndUpdate(
+      imageId,
+      { category },
+      { new: true } // Return the updated document
+    );
 
-    // Delete records from MongoDB
-    await Image.deleteMany({ filename: { $in: imagesToDelete } });
+    if (!updatedImage) {
+      return res.status(404).json({ error: "Image not found" });
+    }
 
-    res.status(200).json({ message: "Images deleted successfully" });
+    res
+      .status(200)
+      .json({ message: "Category assigned successfully", updatedImage });
   } catch (err) {
-    console.error("Error during multiple deletions:", err);
-    res.status(500).json({ error: "Failed to delete images" });
+    console.error("Error assigning category:", err);
+    res.status(500).json({ error: "Failed to assign category" });
   }
 };
 
-module.exports = { uploadImage, listImages, deleteImage, deleteMultipleImages };
+// Filter Images by Category
+const filterByCategory = async (req, res) => {
+  const { category } = req.query;
+
+  if (!allowedCategories.includes(category)) {
+    return res
+      .status(400)
+      .json({
+        error: `Invalid category. Allowed categories are: ${allowedCategories.join(
+          ", "
+        )}`,
+      });
+  }
+
+  try {
+    const images = await Image.find({ category });
+    res.status(200).json({ images });
+  } catch (err) {
+    console.error("Error filtering by category:", err);
+    res.status(500).json({ error: "Failed to filter images" });
+  }
+};
+
+module.exports = {
+  uploadImage,
+  listImages,
+  deleteImage,
+  assignCategory,
+  filterByCategory,
+};

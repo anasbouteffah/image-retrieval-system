@@ -8,7 +8,8 @@ const {
   uploadImage,
   listImages,
   deleteImage,
-  deleteMultipleImages,
+  assignCategory,
+  filterByCategory,
 } = require("../controllers/imageController");
 
 // Setup multer for file uploads
@@ -16,7 +17,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = path.join(__dirname, "../uploads");
     if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true }); // Ensure the directory exists
+      fs.mkdirSync(uploadPath, { recursive: true });
     }
     cb(null, uploadPath);
   },
@@ -28,9 +29,10 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Routes
-router.post("/upload", upload.single("image"), uploadImage); // Upload image
-router.get("/list", listImages); // List images
+router.post("/upload", upload.single("image"), uploadImage);
+router.get("/list", listImages);
 router.delete("/:id", deleteImage);
-router.delete("/multiple", deleteMultipleImages); // Delete multiple images
+router.post("/assign-category", assignCategory); // New route
+router.get("/filter", filterByCategory); // New route
 
 module.exports = router;
