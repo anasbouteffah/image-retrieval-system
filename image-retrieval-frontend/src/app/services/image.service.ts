@@ -3,6 +3,20 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+export interface Category {
+  _id: string;
+  name: string;
+}
+
+export interface Image {
+  _id: string;
+  filename: string;
+  path: string;
+  size: number;
+  uploadDate: Date;
+  category: Category;
+}
+
 @Injectable({
   providedIn: 'root',
 })

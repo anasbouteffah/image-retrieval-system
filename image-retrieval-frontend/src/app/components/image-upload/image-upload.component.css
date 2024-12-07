@@ -19,7 +19,6 @@
   font-size: 0.9rem;
 }
 
-
 .alert {
   font-size: 0.9rem;
 }
@@ -40,15 +39,6 @@
   width: 80%;
   margin: 3em auto;
 }
-
-/* Optional: Add responsiveness */
-@media (max-width: 768px) {
-  .centered-container {
-    width: 95%;
-  }
-}
-
-
 
 .progress {
   width: 100%;
@@ -82,3 +72,7 @@
   margin-top: 10px;
 }
 
+.card-img-top {
+  height: 200px;
+  object-fit: cover;
+}
