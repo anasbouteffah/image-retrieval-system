@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 require("dotenv").config();
 
 const imageRoutes = require("./routes/imageRoutes");
+const categoryRoutes = require("./routes/categoryRoutes");
 
 const corsOptions = {
   origin: "http://localhost:4200",
@@ -31,6 +32,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/images", imageRoutes);
+app.use("/api/categories", categoryRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

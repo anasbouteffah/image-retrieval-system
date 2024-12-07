@@ -1,3 +1,5 @@
+// src/routes/imageRoutes.js
+
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
@@ -8,8 +10,7 @@ const {
   uploadImage,
   listImages,
   deleteImage,
-  assignCategory,
-  filterByCategory,
+  assignCategory, // Import the assignCategory controller
   deleteMultipleImages,
 } = require("../controllers/imageController");
 
@@ -30,13 +31,10 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Routes
-router.post("/upload", upload.array("images", 10), uploadImage); 
+router.post("/upload", upload.array("images", 10), uploadImage); // Handle multiple files with category
+router.get("/list", listImages); // Fetch images, optionally filtered by category
 router.post("/delete-multiple", deleteMultipleImages);
 router.delete("/:id", deleteImage);
-router.post("/assign-category", assignCategory);
-router.get("/filter", filterByCategory);
-router.get("/list", listImages);
-router.post("/assign-category", assignCategory); 
-
+router.post("/assign-category", assignCategory); // Category assignment route
 
 module.exports = router;

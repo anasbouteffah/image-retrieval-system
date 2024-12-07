@@ -1,112 +1,280 @@
-<!-- Outer Container to Center the Content -->
+<!-- src/app/components/image-upload/image-upload.component.html -->
+
+<!-- Conteneur principal pour centrer le contenu -->
 <div class="container centered-container mt-5">
   <div class="row justify-content-center">
-    <!-- Column with Approx. 80% Width -->
+    <!-- Colonne avec environ 80% de largeur -->
     <div class="col-12 col-md-10">
       <div class="mb-4">
-        <!-- Translated Label -->
-        <label for="formFileMultiple" class="form-label fw-bold text-dark">
-          Télécharger Plusieurs Fichiers
-        </label>
-      
-        <!-- Custom file input container -->
-        <div class="input-group">
-          <input
-            class="form-control"
-            type="file"
-            id="formFileMultiple"
-            multiple
-            (change)="onFileSelected($event)"
-            accept="image/*"
-            aria-label="Sélectionner des fichiers"
-          />
-          <button
-            class="btn btn-outline-secondary"
-            type="button"
-            (click)="uploadFiles()"
-            [disabled]="!selectedFiles.length || uploading"
-          >
-            <i class="bi bi-upload"></i> Télécharger
-          </button>
-        </div>
-      
-        <!-- Display selected files -->
-        <div *ngIf="selectedFiles.length > 0" class="mt-3">
-          <h5 class="small text-muted">Fichiers Sélectionnés :</h5>
-          <ul class="list-group">
-            <li class="list-group-item" *ngFor="let file of selectedFiles">
-              {{ file.name }} ({{ file.size / 1024 | number: "1.0-0" }} KB)
-            </li>
-          </ul>
-        </div>
-      
-        <!-- Progress Bar for Upload -->
-        <div *ngIf="uploading" class="progress mt-3">
-          <div
-            class="progress-bar progress-bar-striped progress-bar-animated"
-            role="progressbar"
-            [style.width]="uploadProgress + '%'"
-            [attr.aria-valuenow]="uploadProgress"
-            aria-valuemin="0"
-            aria-valuemax="100"
-          ></div>
-        </div>
-      
-        <!-- Error or Success Message -->
-        <div *ngIf="uploadError" class="alert alert-danger mt-3">
-          {{ uploadError }}
-        </div>
-        <div *ngIf="uploadSuccess" class="alert alert-success mt-3">
-          Fichiers téléchargés avec succès !
-        </div>
-      
-        <!-- Image Gallery Section -->
+        <!-- Formulaire de téléchargement -->
+        <form [formGroup]="uploadForm" (ngSubmit)="uploadFiles()">
+          <!-- Sélection de catégorie -->
+          <div class="mb-3">
+            <label for="categorySelect" class="form-label fw-bold text-dark">
+              Sélectionner une Catégorie
+            </label>
+            <select
+              id="categorySelect"
+              class="form-select"
+              formControlName="category"
+              required
+            >
+              <option value="" disabled selected>Choisir une catégorie</option>
+              <option *ngFor="let category of categories" [value]="category.name">
+                {{ category.name }}
+              </option>
+            </select>
+            <div
+              *ngIf="uploadForm.get('category')?.invalid && uploadForm.get('category')?.touched"
+              class="text-danger"
+            >
+              La catégorie est requise.
+            </div>
+          </div>
+
+          <!-- Input de fichiers -->
+          <label for="formFileMultiple" class="form-label fw-bold text-dark">
+            Télécharger Plusieurs Fichiers
+          </label>
+
+          <div class="input-group">
+            <input
+              class="form-control"
+              type="file"
+              id="formFileMultiple"
+              multiple
+              (change)="onFileSelected($event)"
+              accept="image/*"
+              aria-label="Sélectionner des fichiers"
+            />
+            <button
+              class="btn btn-outline-secondary"
+              type="submit"
+              [disabled]="!selectedFiles.length || uploading || uploadForm.invalid"
+            >
+              <i class="bi bi-upload"></i> Télécharger
+            </button>
+          </div>
+
+          <!-- Afficher les fichiers sélectionnés -->
+          <div *ngIf="selectedFiles.length > 0" class="mt-3">
+            <h5 class="small text-muted">Fichiers Sélectionnés :</h5>
+            <ul class="list-group">
+              <li class="list-group-item" *ngFor="let file of selectedFiles">
+                {{ file.name }} ({{ file.size / 1024 | number: '1.0-0' }} KB)
+              </li>
+            </ul>
+          </div>
+
+          <!-- Barre de progression pour le téléchargement -->
+          <div *ngIf="uploading" class="progress mt-3">
+            <div
+              class="progress-bar progress-bar-striped progress-bar-animated"
+              role="progressbar"
+              [style.width]="uploadProgress + '%'"
+              [attr.aria-valuenow]="uploadProgress"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            ></div>
+          </div>
+
+          <!-- Messages d'erreur ou de succès -->
+          <div *ngIf="uploadError" class="alert alert-danger mt-3">
+            {{ uploadError }}
+          </div>
+          <div *ngIf="uploadSuccess" class="alert alert-success mt-3">
+            Fichiers téléchargés avec succès !
+          </div>
+        </form>
+
+        <!-- Section de la galerie d'images -->
         <div *ngIf="images.length > 0" class="mt-4">
           <h5 class="small text-muted">Liste des Images Téléchargées :</h5>
-          <div class="row">
-            <div class="col-md-3" *ngFor="let image of images">
-              <div class="card">
-                <img
-                  class="card-img-top"
-                  [src]="'http://localhost:5000/uploads/' + image.filename"
-                  alt="Vignette de l'image"
-                />
-                <div class="card-body">
-                  <h6 class="card-title">{{ image.filename }}</h6>
-                  <p class="card-text">
-                    Taille : {{ image.size / 1024 | number: "1.0-0" }} KB<br />
-                    Type : {{ image.filename.split(".").pop().toUpperCase() }}
-                  </p>
-                  <button class="btn btn-primary" (click)="downloadImage(image)">
-                    Télécharger
-                  </button>
-                  <!-- Checkbox for selecting images for deletion -->
-                  <div class="form-check mt-2">
-                    <input 
-                      class="form-check-input"
-                      type="checkbox" 
-                      [value]="image._id"
-                      id="checkbox-{{image._id}}"
-                      (change)="onCheckboxChange($event)"
+
+          <!-- Onglets pour les catégories -->
+          <ul class="nav nav-tabs" id="categoryTabs" role="tablist">
+            <!-- Onglet 'Tous' -->
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                [class.active]="activeCategory === 'All'"
+                id="all-tab"
+                type="button"
+                role="tab"
+                aria-controls="All"
+                [attr.aria-selected]="activeCategory === 'All'"
+                (click)="setActiveCategory('All')"
+              >
+                Tous
+              </button>
+            </li>
+            <!-- Onglets spécifiques aux catégories -->
+            <li class="nav-item" role="presentation" *ngFor="let category of categories">
+              <button
+                class="nav-link"
+                [class.active]="activeCategory === category.name"
+                id="{{category.name}}-tab"
+                type="button"
+                role="tab"
+                [attr.aria-controls]="category.name"
+                [attr.aria-selected]="activeCategory === category.name"
+                (click)="setActiveCategory(category.name)"
+              >
+                {{ category.name }}
+              </button>
+            </li>
+          </ul>
+
+          <!-- Contenu des onglets -->
+          <div class="tab-content" id="categoryTabsContent">
+            <!-- Contenu de l'onglet 'Tous' -->
+            <div
+              class="tab-pane fade"
+              [class.show]="activeCategory === 'All'"
+              [class.active]="activeCategory === 'All'"
+              id="All"
+              role="tabpanel"
+              aria-labelledby="all-tab"
+            >
+              <div class="row mt-3">
+                <div class="col-md-3" *ngFor="let image of categorizedImages['All']">
+                  <div class="card mb-3">
+                    <img
+                      class="card-img-top"
+                      [src]="'http://localhost:5000/uploads/' + image.filename"
+                      alt="Vignette de l'image"
+                      loading="lazy"
                     />
-                    <label class="form-check-label" for="checkbox-{{image._id}}">
-                      Sélectionner pour suppression
-                    </label>
+                    <div class="card-body">
+                      <h6 class="card-title">{{ image.filename }}</h6>
+                      <p class="card-text">
+                        Taille : {{ image.size / 1024 | number: '1.0-0' }} KB<br />
+                        Type : {{ getFileType(image) }}
+                      </p>
+                      <button class="btn btn-primary btn-sm" (click)="downloadImage(image)">
+                        Télécharger
+                      </button>
+                      <!-- Checkbox pour sélectionner l'image pour suppression -->
+                      <div class="form-check mt-2">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          [value]="image._id"
+                          id="checkbox-{{image._id}}"
+                          (change)="onCheckboxChange($event)"
+                        />
+                        <label class="form-check-label" for="checkbox-{{image._id}}">
+                          Sélectionner pour suppression
+                        </label>
+                      </div>
+                      <!-- Bouton et Dropdown pour assigner une catégorie -->
+                      <div class="mt-2">
+                        <!-- Bouton pour changer de catégorie -->
+                        <button
+                          class="btn btn-sm btn-secondary"
+                          type="button"
+                          (click)="toggleCategoryDropdown(image._id)"
+                          [attr.aria-expanded]="dropdowns[image._id] ? 'true' : 'false'"
+                        >
+                          Changer Catégorie
+                        </button>
+
+                        <!-- Dropdown des catégories -->
+                        <div class="dropdown-menu show" *ngIf="dropdowns[image._id]">
+                          <button
+                            class="dropdown-item"
+                            *ngFor="let cat of categories"
+                            (click)="assignCategory(image._id, cat.name); dropdowns[image._id] = false"
+                          >
+                            {{ cat.name }}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contenus spécifiques aux catégories -->
+            <div
+              class="tab-pane fade"
+              [class.show]="activeCategory === category.name"
+              [class.active]="activeCategory === category.name"
+              id="{{category.name}}"
+              role="tabpanel"
+              [attr.aria-labelledby]="category.name + '-tab'"
+              *ngFor="let category of categories"
+            >
+              <div class="row mt-3">
+                <div class="col-md-3" *ngFor="let image of categorizedImages[category.name]">
+                  <div class="card mb-3">
+                    <img
+                      class="card-img-top"
+                      [src]="'http://localhost:5000/uploads/' + image.filename"
+                      alt="Vignette de l'image"
+                      loading="lazy"
+                    />
+                    <div class="card-body">
+                      <h6 class="card-title">{{ image.filename }}</h6>
+                      <p class="card-text">
+                        Taille : {{ image.size / 1024 | number: '1.0-0' }} KB<br />
+                        Type : {{ getFileType(image) }}
+                      </p>
+                      <button class="btn btn-primary btn-sm" (click)="downloadImage(image)">
+                        Télécharger
+                      </button>
+                      <!-- Checkbox pour sélectionner l'image pour suppression -->
+                      <div class="form-check mt-2">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          [value]="image._id"
+                          id="checkbox-{{image._id}}"
+                          (change)="onCheckboxChange($event)"
+                        />
+                        <label class="form-check-label" for="checkbox-{{image._id}}">
+                          Sélectionner pour suppression
+                        </label>
+                      </div>
+                      <!-- Bouton et Dropdown pour assigner une catégorie -->
+                      <div class="mt-2">
+                        <!-- Bouton pour changer de catégorie -->
+                        <button
+                          class="btn btn-sm btn-secondary"
+                          type="button"
+                          (click)="toggleCategoryDropdown(image._id)"
+                          [attr.aria-expanded]="dropdowns[image._id] ? 'true' : 'false'"
+                        >
+                          Changer Catégorie
+                        </button>
+
+                        <!-- Dropdown des catégories -->
+                        <div class="dropdown-menu show" *ngIf="dropdowns[image._id]">
+                          <button
+                            class="dropdown-item"
+                            *ngFor="let cat of categories"
+                            (click)="assignCategory(image._id, cat.name); dropdowns[image._id] = false"
+                          >
+                            {{ cat.name }}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-      
-          <!-- Button to delete selected images -->
-          <button 
+
+          <!-- Bouton pour supprimer les images sélectionnées -->
+          <button
             class="btn btn-danger mt-3"
             (click)="deleteSelectedImages()"
-            [disabled]="selectedImages.length === 0">
+            [disabled]="selectedImages.length === 0"
+          >
             Supprimer Sélectionnées
           </button>
         </div>
       </div>
     </div>
-  </div>
-</div>

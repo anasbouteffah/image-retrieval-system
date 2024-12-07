@@ -1,12 +1,30 @@
+// src/app/components/image-upload/image-upload.component.ts
+
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common'; // Import CommonModule
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { ImageService } from '../../services/image.service';
-import { Image } from '../../models/imageModel';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+
+// Définir les interfaces pour une meilleure sécurité des types
+interface Category {
+  _id: string;
+  name: string;
+}
+
+interface Image {
+  _id: string;
+  filename: string;
+  path: string;
+  size: number;
+  uploadDate: Date;
+  category: Category;
+}
 
 @Component({
   selector: 'app-image-upload',
   standalone: true,
-  imports: [CommonModule], // Add CommonModule here
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
   templateUrl: './image-upload.component.html',
   styleUrls: ['./image-upload.component.css'],
 })
@@ -16,75 +34,114 @@ export class ImageUploadComponent implements OnInit {
   uploadProgress: number = 0;
   uploadError: string = '';
   uploadSuccess: boolean = false;
-  images: any[] = [];
-  selectedImages: string[] = []; // Store selected image IDs for deletion
-  selectedImageForCategory: Image | null = null;
+  images: Image[] = [];
+  selectedImages: string[] = [];
+  categories: Category[] = []; // Tableau pour stocker les catégories du backend
+  categorizedImages: { [key: string]: Image[] } = {};
+  dropdowns: { [key: string]: boolean } = {}; // Suivre l'état des dropdowns par image
 
-  constructor(private imageService: ImageService) {}
+  uploadForm: FormGroup;
+
+  // Propriété pour suivre la catégorie active
+  activeCategory: string = 'All';
+
+  constructor(private imageService: ImageService, private fb: FormBuilder) {
+    this.uploadForm = this.fb.group({
+      category: ['', Validators.required], // Rendre la catégorie obligatoire
+    });
+  }
 
   ngOnInit(): void {
+    this.fetchCategories();
     this.fetchImages();
   }
 
-  // Handle file selection
+  // Récupérer les catégories depuis le backend
+  fetchCategories(): void {
+    this.imageService.getCategories().subscribe({
+      next: (response) => {
+        this.categories = response.categories;
+        this.organizeImagesByCategory(); // Organiser les images une fois les catégories récupérées
+      },
+      error: (error) => {
+        console.error('Erreur lors de la récupération des catégories:', error);
+      },
+    });
+  }
+
+  // Gérer la sélection de fichiers
   onFileSelected(event: any): void {
     this.selectedFiles = Array.from(event.target.files);
     this.uploadError = '';
     this.uploadSuccess = false;
   }
 
-  // Handle file upload
+  // Gérer le téléchargement des fichiers avec la catégorie
   uploadFiles(): void {
-    if (this.selectedFiles.length === 0) return; // Ensure files are selected
+    if (this.selectedFiles.length === 0) return;
+
+    if (this.uploadForm.invalid) {
+      this.uploadError = 'Veuillez sélectionner une catégorie.';
+      return;
+    }
 
     this.uploading = true;
     const formData = new FormData();
-    this.selectedFiles.forEach((file) => formData.append('images', file)); // 'images' is the field name in the backend
+    this.selectedFiles.forEach((file) => formData.append('images', file));
+    formData.append('categoryName', this.uploadForm.value.category); // Utiliser 'categoryName' selon le backend
 
     this.imageService.uploadImage(formData).subscribe({
       next: (response) => {
         this.uploadSuccess = true;
         this.uploading = false;
         this.uploadProgress = 100;
-        this.updateGallery(response.dbRecords); // Update the gallery with the uploaded image(s)
+        this.updateGallery(response.dbRecords);
+        this.uploadForm.reset(); // Réinitialiser le formulaire après le téléchargement
+        this.selectedFiles = []; // Vider les fichiers sélectionnés
       },
       error: (error) => {
-        this.uploadError = 'Error uploading files. Please try again.';
+        this.uploadError =
+          'Erreur lors du téléchargement des fichiers. Veuillez réessayer.';
         this.uploading = false;
         this.uploadProgress = 0;
       },
     });
   }
 
-  // Update gallery with the newly uploaded image(s)
-  updateGallery(newImages: any[]): void {
-    this.images = newImages; // Update the images array with the newly uploaded images
+  // Mettre à jour la galerie avec les nouvelles images téléchargées
+  updateGallery(newImages: Image[]): void {
+    this.images = this.images.concat(newImages);
+    this.organizeImagesByCategory();
   }
 
+  // Supprimer une image individuelle
   deleteImage(imageId: string): void {
     this.imageService.deleteImage(imageId).subscribe({
       next: (response) => {
-        this.images = this.images.filter((image) => image._id !== imageId); // Remove image from the gallery
+        this.images = this.images.filter((image) => image._id !== imageId);
+        this.organizeImagesByCategory();
       },
       error: (error) => {
-        this.uploadError = 'Error deleting image. Please try again.';
+        this.uploadError =
+          "Erreur lors de la suppression de l'image. Veuillez réessayer.";
       },
     });
   }
 
+  // Gérer les changements de checkbox pour sélectionner les images à supprimer
   onCheckboxChange(event: any): void {
     const imageId = event.target.value;
     if (event.target.checked) {
-      this.selectedImages.push(imageId); // Add to selection
+      this.selectedImages.push(imageId);
     } else {
       const index = this.selectedImages.indexOf(imageId);
       if (index !== -1) {
-        this.selectedImages.splice(index, 1); // Remove from selection
+        this.selectedImages.splice(index, 1);
       }
     }
   }
 
-  // Delete selected images
+  // Supprimer les images sélectionnées
   deleteSelectedImages(): void {
     if (this.selectedImages.length === 0) return;
 
@@ -92,46 +149,112 @@ export class ImageUploadComponent implements OnInit {
       next: (response) => {
         this.images = this.images.filter(
           (image) => !this.selectedImages.includes(image._id)
-        ); // Update the gallery
-        this.selectedImages = []; // Reset selected images
+        );
+        this.selectedImages = [];
+        this.organizeImagesByCategory();
       },
       error: (error) => {
-        this.uploadError = 'Error deleting selected images. Please try again.';
+        this.uploadError =
+          'Erreur lors de la suppression des images sélectionnées. Veuillez réessayer.';
       },
     });
   }
 
-  // Fetch only the latest images from the backend
+  // Récupérer toutes les images depuis le backend
   fetchImages(): void {
     this.imageService.getImages().subscribe({
       next: (response) => {
         this.images = response.images;
+        this.organizeImagesByCategory();
       },
       error: (error) => {
-        console.error('Error fetching images:', error);
+        console.error('Erreur lors de la récupération des images:', error);
       },
     });
   }
 
-  // Download image
-  downloadImage(image: any): void {
+  // Télécharger une image
+  downloadImage(image: Image): void {
     const link = document.createElement('a');
     link.href = `http://localhost:5000/uploads/${image.filename}`;
     link.download = image.filename;
     link.click();
   }
 
-  // Ouvrir le modal pour assigner une catégorie
-  openAssignCategory(image: Image): void {
-    this.selectedImageForCategory = image;
+  // Organiser les images par catégorie
+  organizeImagesByCategory(): void {
+    this.categorizedImages = {};
+
+    // Initialiser les catégories
+    this.categories.forEach((category) => {
+      this.categorizedImages[category.name] = [];
+    });
+
+    // Assigner les images à leurs catégories respectives
+    this.images.forEach((image) => {
+      if (image.category && image.category.name) {
+        if (!this.categorizedImages[image.category.name]) {
+          this.categorizedImages[image.category.name] = [];
+        }
+        this.categorizedImages[image.category.name].push(image);
+      }
+    });
+
+    // Assigner la catégorie 'All'
+    this.categorizedImages['All'] = this.images;
+
+    console.log('Images catégorisées:', this.categorizedImages);
   }
 
-  // Méthode pour mettre à jour l'image après assignation de catégorie
-  onCategoryAssigned(updatedImage: Image): void {
-    const index = this.images.findIndex((img) => img._id === updatedImage._id);
-    if (index !== -1) {
-      this.images[index] = updatedImage;
+  // Basculer la visibilité du dropdown de catégorie
+  toggleCategoryDropdown(imageId: string): void {
+    this.dropdowns[imageId] = !this.dropdowns[imageId];
+  }
+
+  // Méthode pour extraire en toute sécurité le type de fichier (extension) en majuscules
+  getFileType(image: Image): string {
+    const parts = image.filename.split('.');
+    if (parts.length > 1) {
+      const extension = parts.pop();
+      return extension ? extension.toUpperCase() : 'UNKNOWN';
     }
-    this.selectedImageForCategory = null;
+    return 'UNKNOWN';
+  }
+
+  // Assigner une catégorie à une image
+  assignCategory(imageId: string, categoryName: string): void {
+    console.log(
+      `Assignation de la catégorie '${categoryName}' à l'image ID '${imageId}'`
+    );
+
+    if (!categoryName) {
+      this.uploadError = 'Veuillez sélectionner une catégorie valide.';
+      console.error(this.uploadError);
+      return;
+    }
+
+    this.imageService.assignCategory(imageId, categoryName).subscribe({
+      next: (response: any) => {
+        console.log('Assignation de la catégorie réussie:', response);
+        const updatedImage: Image = response.updatedImage;
+        const index = this.images.findIndex((image) => image._id === imageId);
+        if (index !== -1) {
+          this.images[index].category = updatedImage.category;
+          this.organizeImagesByCategory();
+          console.log("Catégorie de l'image mise à jour dans le frontend.");
+        }
+      },
+      error: (error: any) => {
+        console.error("Erreur lors de l'assignation de la catégorie:", error);
+        this.uploadError =
+          "Erreur lors de l'assignation de la catégorie. Veuillez réessayer.";
+      },
+    });
+  }
+
+  // Définir la catégorie active lorsqu'un onglet est cliqué
+  setActiveCategory(category: string): void {
+    console.log(`Définir la catégorie active sur: ${category}`);
+    this.activeCategory = category;
   }
 }

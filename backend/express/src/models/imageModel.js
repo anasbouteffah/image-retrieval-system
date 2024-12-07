@@ -5,7 +5,11 @@ const imageSchema = new mongoose.Schema({
   path: { type: String, required: true },
   size: { type: Number, required: true },
   uploadDate: { type: Date, default: Date.now },
-  category: { type: String, default: null },
+  category: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Category",
+    required: true,
+  },
 });
 
 module.exports = mongoose.model("Image", imageSchema);

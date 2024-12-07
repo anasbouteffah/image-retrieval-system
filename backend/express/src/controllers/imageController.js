@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const Image = require("../models/imageModel");
+const Category = require("../models/categoryModel");
 
 // Allowed categories for images
 const allowedCategories = [
@@ -14,45 +15,67 @@ const allowedCategories = [
 ];
 
 // Upload Image
-const uploadImage = (req, res) => {
-  if (!req.files || req.files.length === 0) {
-    return res.status(400).json({ error: "No files uploaded" });
+const uploadImage = async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: "No files uploaded" });
+    }
+
+    const { categoryName } = req.body;
+
+    if (!categoryName) {
+      return res.status(400).json({ error: "Category is required" });
+    }
+
+    // Find the category by name
+    const category = await Category.findOne({ name: categoryName });
+    if (!category) {
+      return res.status(400).json({ error: "Invalid category" });
+    }
+
+    const images = req.files.map((file) => ({
+      filename: file.filename,
+      path: file.path,
+      size: file.size,
+      uploadDate: new Date(),
+      category: category._id, // Assign the category ObjectId
+    }));
+
+    const savedImages = await Image.insertMany(images);
+    res.status(200).json({
+      message: "Images uploaded successfully!",
+      files: req.files,
+      dbRecords: savedImages,
+    });
+  } catch (err) {
+    console.error("Error uploading images:", err);
+    res.status(500).json({ error: "Failed to upload images" });
   }
-
-  const images = req.files.map((file) => ({
-    filename: file.filename,
-    path: file.path,
-    size: file.size,
-    uploadDate: new Date(),
-  }));
-
-  Image.insertMany(images)
-    .then((savedImages) => {
-      res.status(200).json({
-        message: "Images uploaded successfully!",
-        files: req.files,
-        dbRecords: savedImages,
-      });
-    })
-    .catch((err) => {
-      console.error("Error saving to database:", err);
-      res
-        .status(500)
-        .json({ error: "Failed to save image metadata to database" });
-    });
 };
 
-// List Images
-const listImages = (req, res) => {
-  Image.find()
-    .then((images) => {
-      res.status(200).json({ images });
-    })
-    .catch((err) => {
-      console.error("Error fetching images:", err);
-      res.status(500).json({ error: "Failed to fetch images" });
-    });
+// List Images sorted by Category
+
+const listImages = async (req, res) => {
+  try {
+    const { category } = req.query;
+
+    let filter = {};
+    if (category && category !== 'All') {
+      const categoryDoc = await Category.findOne({ name: category });
+      if (!categoryDoc) {
+        return res.status(400).json({ error: 'Invalid category' });
+      }
+      filter.category = categoryDoc._id;
+    }
+
+    const images = await Image.find(filter).populate('category'); // Ensure 'category' is populated
+    res.status(200).json({ images });
+  } catch (err) {
+    console.error('Error fetching images:', err);
+    res.status(500).json({ error: 'Failed to fetch images' });
+  }
 };
+
 
 // Delete Image
 const deleteImage = async (req, res) => {
@@ -84,50 +107,50 @@ const deleteImage = async (req, res) => {
 
 // Assign Category to Image
 const assignCategory = async (req, res) => {
-  const { imageId, category } = req.body;
-
-  if (!allowedCategories.includes(category)) {
-    return res
-      .status(400)
-      .json({
-        error: `Invalid category. Allowed categories are: ${allowedCategories.join(
-          ", "
-        )}`,
-      });
-  }
-
   try {
-    const updatedImage = await Image.findByIdAndUpdate(
-      imageId,
-      { category },
-      { new: true } // Return the updated document
-    );
+    const { imageId, categoryName } = req.body;
 
-    if (!updatedImage) {
-      return res.status(404).json({ error: "Image not found" });
+    if (!imageId || !categoryName) {
+      return res
+        .status(400)
+        .json({ error: "Image ID and Category Name are required." });
     }
 
-    res
-      .status(200)
-      .json({ message: "Category assigned successfully", updatedImage });
+    // Find the category by name
+    const category = await Category.findOne({ name: categoryName });
+    if (!category) {
+      return res.status(400).json({ error: "Invalid category name." });
+    }
+
+    // Update the image's category
+    const updatedImage = await Image.findByIdAndUpdate(
+      imageId,
+      { category: category._id },
+      { new: true }
+    ).populate("category"); // Populate the category field for the response
+
+    if (!updatedImage) {
+      return res.status(404).json({ error: "Image not found." });
+    }
+
+    res.status(200).json({ updatedImage });
   } catch (err) {
     console.error("Error assigning category:", err);
-    res.status(500).json({ error: "Failed to assign category" });
+    res.status(500).json({ error: "Failed to assign category." });
   }
 };
+
 
 // Filter Images by Category
 const filterByCategory = async (req, res) => {
   const { category } = req.query;
 
   if (!allowedCategories.includes(category)) {
-    return res
-      .status(400)
-      .json({
-        error: `Invalid category. Allowed categories are: ${allowedCategories.join(
-          ", "
-        )}`,
-      });
+    return res.status(400).json({
+      error: `Invalid category. Allowed categories are: ${allowedCategories.join(
+        ", "
+      )}`,
+    });
   }
 
   try {
