@@ -311,8 +311,8 @@
       >
         Supprimer Sélectionnées
       </button>
-
-      <!-- Nouveau Bouton pour Rafraîchir la Galerie -->
+      <!-- Si vous souhaitez conserver le bouton de rafraîchissement manuel, vous pouvez le laisser ici -->
+      <!--
       <button
         class="btn btn-secondary ms-2"
         (click)="refreshGallery()"
@@ -320,8 +320,9 @@
       >
         <i class="bi bi-arrow-clockwise"></i> Rafraîchir la galerie
       </button>
-
-      <!-- Indicateur de chargement lors du rafraîchissement -->
+      -->
+      <!-- Indicateur de chargement lors du rafraîchissement (si vous conservez le bouton) -->
+      <!--
       <div
         *ngIf="refreshing"
         class="spinner-border text-secondary ms-3"
@@ -329,6 +330,7 @@
       >
         <span class="visually-hidden">Rafraîchissement...</span>
       </div>
+      -->
     </div>
   </div>
 </div>

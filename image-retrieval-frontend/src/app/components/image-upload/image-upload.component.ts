@@ -121,7 +121,9 @@ export class ImageUploadComponent implements OnInit {
         this.uploadSuccess = true;
         this.uploading = false;
         this.uploadProgress = 100;
-        this.updateGallery(response.dbRecords);
+
+        // Appel automatique à refreshGallery après le téléchargement réussi
+        this.refreshGallery();
 
         // Log des nouvelles images
         console.log('Nouvelles images ajoutées:', response.dbRecords);
