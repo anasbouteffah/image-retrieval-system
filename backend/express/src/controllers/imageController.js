@@ -56,16 +56,24 @@ const listImages = (req, res) => {
 
 // Delete Image
 const deleteImage = async (req, res) => {
-  const imageName = req.params.id;
-  const imagePath = path.join(__dirname, "../uploads", imageName);
-
-  if (!fs.existsSync(imagePath)) {
-    return res.status(404).json({ error: "Image not found" });
-  }
+  const imageId = req.params.id; // This is now the MongoDB _id
 
   try {
-    fs.unlinkSync(imagePath);
-    await Image.deleteOne({ filename: imageName });
+    // Find the image document by _id
+    const image = await Image.findById(imageId);
+
+    if (!image) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+
+    const imagePath = path.join(__dirname, "../uploads", image.filename);
+
+    if (fs.existsSync(imagePath)) {
+      fs.unlinkSync(imagePath);
+    }
+
+    // Delete the image document from the database
+    await Image.deleteOne({ _id: imageId });
 
     res.status(200).json({ message: "Image deleted successfully" });
   } catch (err) {

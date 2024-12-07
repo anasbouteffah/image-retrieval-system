@@ -24,6 +24,9 @@
   font-size: 0.9rem;
 }
 
+.form-label {
+  margin: 0 0 12px 3px;
+}
 
 .upload-container {
   width: 80%;  
@@ -31,6 +34,20 @@
   padding: 20px;   
   box-sizing: border-box; 
 }
+
+/* In your component's CSS file (e.g., file-upload.component.css) */
+.centered-container {
+  width: 80%;
+  margin: 3em auto;
+}
+
+/* Optional: Add responsiveness */
+@media (max-width: 768px) {
+  .centered-container {
+    width: 95%;
+  }
+}
+
 
 
 .progress {

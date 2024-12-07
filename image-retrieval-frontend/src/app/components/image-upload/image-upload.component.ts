@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common'; // Import CommonModule
 import { ImageService } from '../../services/image.service';
+import { Image } from '../../models/imageModel';
 
 @Component({
   selector: 'app-image-upload',
@@ -17,19 +18,19 @@ export class ImageUploadComponent implements OnInit {
   uploadSuccess: boolean = false;
   images: any[] = [];
   selectedImages: string[] = []; // Store selected image IDs for deletion
+  selectedImageForCategory: Image | null = null;
 
   constructor(private imageService: ImageService) {}
 
   ngOnInit(): void {
-    // You can choose to fetch images on component initialization if needed
-    // this.fetchImages();  // Commented out because we're fetching only new images now
+    this.fetchImages();
   }
 
   // Handle file selection
   onFileSelected(event: any): void {
     this.selectedFiles = Array.from(event.target.files);
-    this.uploadError = ''; // Reset any previous error message
-    this.uploadSuccess = false; // Reset success state
+    this.uploadError = '';
+    this.uploadSuccess = false;
   }
 
   // Handle file upload
@@ -104,7 +105,7 @@ export class ImageUploadComponent implements OnInit {
   fetchImages(): void {
     this.imageService.getImages().subscribe({
       next: (response) => {
-        this.images = response.images; // Assuming the response contains the images array
+        this.images = response.images;
       },
       error: (error) => {
         console.error('Error fetching images:', error);
@@ -118,5 +119,19 @@ export class ImageUploadComponent implements OnInit {
     link.href = `http://localhost:5000/uploads/${image.filename}`;
     link.download = image.filename;
     link.click();
+  }
+
+  // Ouvrir le modal pour assigner une catégorie
+  openAssignCategory(image: Image): void {
+    this.selectedImageForCategory = image;
+  }
+
+  // Méthode pour mettre à jour l'image après assignation de catégorie
+  onCategoryAssigned(updatedImage: Image): void {
+    const index = this.images.findIndex((img) => img._id === updatedImage._id);
+    if (index !== -1) {
+      this.images[index] = updatedImage;
+    }
+    this.selectedImageForCategory = null;
   }
 }

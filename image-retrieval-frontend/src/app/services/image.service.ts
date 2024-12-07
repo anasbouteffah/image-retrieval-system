@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { Image } from '../models/imageModel';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ImageService {
-  private apiUrl = 'http://localhost:5000/api/images'; 
+  private apiUrl = 'http://localhost:5000/api/images';
 
   constructor(private http: HttpClient) {}
 
@@ -17,7 +18,7 @@ export class ImageService {
 
   // Get the list of images
   getImages(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/list`);
+    return this.http.get<any[]>(`${this.apiUrl}/list`);
   }
 
   // Delete a single image
@@ -28,5 +29,13 @@ export class ImageService {
   // Delete multiple images
   deleteMultipleImages(imageIds: string[]): Observable<any> {
     return this.http.post(`${this.apiUrl}/delete-multiple`, { imageIds });
+  }
+
+  // Assigner une catégorie à une image
+  assignCategory(imageId: string, category: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/assign-category`, {
+      imageId,
+      category,
+    });
   }
 }

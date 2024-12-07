@@ -30,10 +30,13 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Routes
-router.post("/upload", upload.array("images", 10), uploadImage); // Change to handle multiple files
+router.post("/upload", upload.array("images", 10), uploadImage); 
 router.post("/delete-multiple", deleteMultipleImages);
 router.delete("/:id", deleteImage);
 router.post("/assign-category", assignCategory);
 router.get("/filter", filterByCategory);
+router.get("/list", listImages);
+router.post("/assign-category", assignCategory); 
+
 
 module.exports = router;
