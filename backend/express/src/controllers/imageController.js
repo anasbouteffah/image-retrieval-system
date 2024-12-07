@@ -15,36 +15,31 @@ const allowedCategories = [
 
 // Upload Image
 const uploadImage = (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No file uploaded" });
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ error: "No files uploaded" });
   }
 
-  try {
-    const image = new Image({
-      filename: req.file.filename,
-      path: req.file.path,
-      size: req.file.size,
-    });
+  const images = req.files.map((file) => ({
+    filename: file.filename,
+    path: file.path,
+    size: file.size,
+    uploadDate: new Date(),
+  }));
 
-    image
-      .save()
-      .then((savedImage) => {
-        res.status(200).json({
-          message: "Image uploaded successfully!",
-          file: req.file,
-          dbRecord: savedImage,
-        });
-      })
-      .catch((err) => {
-        console.error("Error saving to database:", err);
-        res
-          .status(500)
-          .json({ error: "Failed to save image metadata to database" });
+  Image.insertMany(images)
+    .then((savedImages) => {
+      res.status(200).json({
+        message: "Images uploaded successfully!",
+        files: req.files,
+        dbRecords: savedImages,
       });
-  } catch (err) {
-    console.error("Error during upload:", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
+    })
+    .catch((err) => {
+      console.error("Error saving to database:", err);
+      res
+        .status(500)
+        .json({ error: "Failed to save image metadata to database" });
+    });
 };
 
 // List Images
@@ -136,10 +131,44 @@ const filterByCategory = async (req, res) => {
   }
 };
 
+const deleteMultipleImages = async (req, res) => {
+  const { imageIds } = req.body; // Expecting an array of image IDs
+
+  if (!Array.isArray(imageIds) || imageIds.length === 0) {
+    return res.status(400).json({ error: "No images selected for deletion" });
+  }
+
+  try {
+    // Find the images to delete by their IDs
+    const imagesToDelete = await Image.find({ _id: { $in: imageIds } });
+
+    if (imagesToDelete.length === 0) {
+      return res.status(404).json({ error: "No images found" });
+    }
+
+    // Delete the image files from the filesystem
+    imagesToDelete.forEach((image) => {
+      const imagePath = path.join(__dirname, "../uploads", image.filename);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    });
+
+    // Delete images from the database
+    await Image.deleteMany({ _id: { $in: imageIds } });
+
+    res.status(200).json({ message: "Images deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting images:", err);
+    res.status(500).json({ error: "Failed to delete images" });
+  }
+};
+
 module.exports = {
   uploadImage,
   listImages,
   deleteImage,
   assignCategory,
   filterByCategory,
+  deleteMultipleImages,
 };

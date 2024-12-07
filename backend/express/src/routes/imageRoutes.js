@@ -10,6 +10,7 @@ const {
   deleteImage,
   assignCategory,
   filterByCategory,
+  deleteMultipleImages,
 } = require("../controllers/imageController");
 
 // Setup multer for file uploads
@@ -29,10 +30,10 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Routes
-router.post("/upload", upload.single("image"), uploadImage);
-router.get("/list", listImages);
+router.post("/upload", upload.array("images", 10), uploadImage); // Change to handle multiple files
+router.post("/delete-multiple", deleteMultipleImages);
 router.delete("/:id", deleteImage);
-router.post("/assign-category", assignCategory); // New route
-router.get("/filter", filterByCategory); // New route
+router.post("/assign-category", assignCategory);
+router.get("/filter", filterByCategory);
 
 module.exports = router;

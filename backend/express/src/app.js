@@ -7,18 +7,23 @@ require("dotenv").config();
 
 const imageRoutes = require("./routes/imageRoutes");
 
+const corsOptions = {
+  origin: "http://localhost:4200",
+  methods: "GET,POST,PUT,DELETE",
+  allowedHeaders: "Content-Type,Authorization",
+};
+
 const app = express();
 
-// MongoDB connection
 mongoose
   .connect("mongodb://localhost:27017/imagesDB")
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Failed to connect to MongoDB", err));
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
-app.use("/uploads", express.static(path.join(__dirname, "uploads"))); // Serve static files
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
 app.get("/", (req, res) => {
