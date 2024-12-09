@@ -1,0 +1,107 @@
+<!-- src/app/components/image-transform/image-transform.component.html -->
+
+<div class="container mt-4">
+  <h3>Transform Image</h3>
+
+  <!-- Select Image Dropdown -->
+  <div class="mb-3">
+    <label for="selectImage" class="form-label">Select an Image to Transform</label>
+    <select
+      id="selectImage"
+      class="form-select"
+      [(ngModel)]="selectedImageId"
+      (change)="onImageSelect()"
+    >
+      <option value="" disabled selected>Select an image</option>
+      <option *ngFor="let image of images" [value]="image._id">
+        {{ image.filename }}
+      </option>
+    </select>
+  </div>
+
+  <!-- Transformation Options -->
+  <div *ngIf="selectedImage" class="mb-3">
+    <h5>Choose Transformations</h5>
+
+    <!-- Crop Section -->
+    <div class="mb-3">
+      <h6>Crop Image</h6>
+      <input type="file" (change)="fileChangeEvent($event)" accept="image/*" />
+      <image-cropper
+        [imageChangedEvent]="imageChangedEvent"
+        [maintainAspectRatio]="false"
+        [resizeToWidth]="resizeWidth || undefined"
+        format="png"
+        (imageCropped)="onImageCropped($event)"
+        (imageLoaded)="onImageLoaded()"
+        (cropperReady)="onCropperReady()"
+        (loadImageFailed)="onLoadImageFailed()"
+      ></image-cropper>
+
+      <!-- Preview Cropped Image -->
+      <div *ngIf="croppedImage" class="mt-3">
+        <h6>Preview Cropped Image</h6>
+        <img [src]="croppedImage" alt="Cropped Image Preview" class="img-thumbnail" />
+      </div>
+    </div>
+
+    <!-- Resize Section -->
+    <div class="mb-3">
+      <h6>Resize Image</h6>
+      <label for="resizeWidth" class="form-label">Width (px)</label>
+      <input
+        type="number"
+        id="resizeWidth"
+        class="form-control"
+        [(ngModel)]="resizeWidth"
+        placeholder="Enter width"
+        min="1"
+      />
+    </div>
+
+    <!-- Rotate Section -->
+    <div class="mb-3">
+      <h6>Rotate Image</h6>
+      <label for="rotateAngle" class="form-label">Rotate (degrees)</label>
+      <input
+        type="number"
+        id="rotateAngle"
+        class="form-control"
+        [(ngModel)]="rotateAngle"
+        placeholder="Enter angle (e.g., 90)"
+      />
+    </div>
+
+    <!-- Category Selection (Optional) -->
+    <div class="mb-3">
+      <label for="categorySelect" class="form-label">Assign Category</label>
+      <select
+        id="categorySelect"
+        class="form-select"
+        [(ngModel)]="selectedCategory"
+      >
+        <option value="" disabled selected>Choose a category</option>
+        <option *ngFor="let category of categories" [value]="category.name">
+          {{ category.name }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Submit Button -->
+    <button
+      class="btn btn-primary"
+      (click)="submitTransformation()"
+      [disabled]="!transformedImageData || uploading"
+    >
+      Apply Transformations
+    </button>
+  </div>
+
+  <!-- Success and Error Messages -->
+  <div *ngIf="transformationSuccess" class="alert alert-success mt-3">
+    Image transformed and uploaded successfully!
+  </div>
+  <div *ngIf="transformationError" class="alert alert-danger mt-3">
+    {{ transformationError }}
+  </div>
+</div>

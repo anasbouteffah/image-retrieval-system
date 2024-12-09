@@ -1,6 +1,7 @@
 // src/app/services/image.service.ts
+
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpRequest } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface Category {
@@ -15,6 +16,8 @@ export interface Image {
   size: number;
   uploadDate: Date;
   category: Category;
+  width: number;
+  height: number;
 }
 
 @Injectable({
@@ -60,6 +63,14 @@ export class ImageService {
     return this.http.post(`${this.apiUrl}/assign-category`, {
       imageId,
       categoryName,
+    });
+  }
+
+  // Transform an existing image
+  transformImage(imageId: string, transformations: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/transform`, {
+      imageId,
+      transformations,
     });
   }
 }

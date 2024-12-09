@@ -1,0 +1,7 @@
+Flask
+flask-restful
+flask-cors
+opencv-python
+numpy
+werkzeug
+scikit-image
