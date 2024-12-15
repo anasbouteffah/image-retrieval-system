@@ -1,0 +1,107 @@
+<div class="image-view-container">
+  <h2 class="title">L'image sélectionnée</h2>
+
+  <div class="image-wrapper">
+    <img
+      [src]="'http://localhost:5000/uploads/' + filename"
+      alt="Selected Image"
+      class="selected-image"
+    />
+  </div>
+
+  <h3 class="filename">Tu as sélectionné : {{ filename }}</h3>
+
+  <div class="button-group">
+    <button class="btn btn-primary" (click)="computeDescriptors(filename)">
+      Compute Descriptors
+    </button>
+    <button class="btn btn-outline-secondary" (click)="listVisualizations()">
+      Afficher Visualizations
+    </button>
+    <button
+      class="btn btn-success"
+      (click)="simpleSearch()"
+      [disabled]="!descriptorsCalculated"
+    >
+      Recherche Simple
+    </button>
+  </div>
+
+  <!-- Display visualizations as images -->
+  <div
+    *ngIf="visualizations && visualizations.length > 0"
+    class="visualization-gallery"
+  >
+    <h3>Visualizations:</h3>
+    <div class="visualization-images">
+      <img
+        *ngFor="let visualization of visualizations"
+        [src]="visualization"
+        alt="Visualization"
+        class="visualization-image"
+      />
+    </div>
+  </div>
+
+  <!-- Display calculated descriptors -->
+  <div
+    *ngIf="descriptors && objectKeys(descriptors).length > 0"
+    class="descriptor-table"
+  >
+    <h3>Calculated Descriptors:</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Descriptor</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let key of objectKeys(descriptors)">
+          <td>{{ key }}</td>
+          <td>
+            <span *ngIf="array.isArray(descriptors[key]); else notArray">
+              Array (Length: {{ descriptors[key].length }})
+            </span>
+            <ng-template #notArray>{{ descriptors[key] }}</ng-template>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div *ngIf="similarImages.length > 0" class="similar-images">
+    <h3>Images Similaires:</h3>
+    <button
+      class="btn btn-warning"
+      (click)="feedbackSearch()"
+      [disabled]="!descriptorsCalculated"
+    >
+      Recherche avec Retour de Pertinence
+    </button>
+
+    <div class="image-gallery">
+      <div *ngFor="let image of similarImages" class="image-item">
+        <img
+          [src]="'http://localhost:5000/uploads/' + image.filename"
+          alt="Similar Image"
+        />
+        <p>{{ image.filename }}</p>
+        <p>Score de Similarité: {{ image.similarity_score.toFixed(2) }}</p>
+        <div class="feedback-buttons">
+          <button
+            class="btn btn-success"
+            (click)="markFeedback(image.image_id, 'relevant')"
+          >
+            Mark Relevant
+          </button>
+          <button
+            class="btn btn-danger"
+            (click)="markFeedback(image.image_id, 'non-relevant')"
+          >
+            Mark Non-Relevant
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

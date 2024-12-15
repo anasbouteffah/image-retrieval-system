@@ -12,6 +12,7 @@ const allowedCategories = [
   "Park",
   "Urban",
   "River",
+  "autre"
 ];
 
 // Upload Image

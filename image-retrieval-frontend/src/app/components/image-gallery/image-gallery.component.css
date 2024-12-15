@@ -1,0 +1,78 @@
+.progress-bar {
+  background-color: #28a745; 
+}
+
+.input-group .btn {
+  background-color: #007bff;
+  color: white;
+}
+
+.mt-3 {
+  margin-top: 1rem;
+}
+
+.mb-3 {
+  margin-bottom: 1rem;
+}
+
+.list-group-item {
+  font-size: 0.9rem;
+}
+
+.alert {
+  font-size: 0.9rem;
+}
+
+.form-label {
+  margin: 0 0 12px 3px;
+}
+
+.upload-container {
+  width: 80%;  
+  margin: 0 auto;  
+  padding: 20px;   
+  box-sizing: border-box; 
+}
+
+/* In your component's CSS file (e.g., file-upload.component.css) */
+.centered-container {
+  width: 80%;
+  margin: 3em auto;
+}
+
+.progress {
+  width: 100%;
+}
+
+/* Optional: Styling for the gallery */
+.card {
+  margin-bottom: 20px;
+}
+
+.card-img-top {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}
+
+.card-body {
+  text-align: center;
+}
+
+.card-title {
+  font-size: 1rem;
+}
+
+.card-text {
+  font-size: 0.9rem;
+}
+
+.btn-primary {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.card-img-top {
+  height: 200px;
+  object-fit: cover;
+}

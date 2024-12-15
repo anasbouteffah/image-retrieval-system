@@ -10,6 +10,7 @@ const imageSchema = new mongoose.Schema({
     ref: "Category",
     required: true,
   },
+  descriptors: { type: Object },
 });
 
 module.exports = mongoose.model("Image", imageSchema);

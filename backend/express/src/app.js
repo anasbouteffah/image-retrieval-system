@@ -7,6 +7,8 @@ require("dotenv").config();
 
 const imageRoutes = require("./routes/imageRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
+const descriptorRoutes = require("./routes/descriptorRoutes");
+
 
 const corsOptions = {
   origin: "http://localhost:4200",
@@ -33,6 +35,8 @@ app.get("/", (req, res) => {
 
 app.use("/api/images", imageRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/descriptors", descriptorRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

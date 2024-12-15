@@ -26,6 +26,7 @@ export interface Image {
 export class ImageService {
   private apiUrl = 'http://localhost:5000/api/images';
   private categoryUrl = 'http://localhost:5000/api/categories';
+  private flaskApi = 'http://localhost:5001/api';
 
   constructor(private http: HttpClient) {}
 
@@ -72,5 +73,37 @@ export class ImageService {
       imageId,
       transformations,
     });
+  }
+
+  computeDescriptors(payload: { filename: string }): Observable<any> {
+    return this.http.post(`${this.flaskApi}/descriptors/compute`, payload, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  getVisualizations(payload: { filename: string }): Observable<any> {
+    return this.http.post(`${this.flaskApi}/visualizations`, payload, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  simpleSearch(payload: { query_descriptors: any }): Observable<any> {
+    return this.http.post(
+      `${this.flaskApi}/descriptors/simple-search`,
+      payload,
+      {
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
+  submitFeedback(payload: {
+    image_id: string;
+    feedback: string;
+  }): Observable<any> {
+    const url = 'http://localhost:5001/api/descriptors/feedback';
+    return this.http.post(url, payload);
+  }
+
+  feedbackSearch(payload: any) {
+    const url = 'http://localhost:5001/api/descriptors/feedback-search';
+    return this.http.post<any>(url, payload);
   }
 }

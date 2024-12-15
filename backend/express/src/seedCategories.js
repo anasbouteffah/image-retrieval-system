@@ -11,6 +11,7 @@ const categories = [
   "Park",
   "Urban",
   "River",
+  "autre"
 ];
 
 mongoose
