@@ -1,7 +1,7 @@
 <div class="centered-container">
   <!-- Section de la galerie d'images -->
   <div *ngIf="images.length > 0" class="mt-4">
-    <h5 class="small text-muted">Liste des Images Téléchargées :</h5>
+    <h5 class="small text-muted">List of Uploaded Images :</h5>
 
     <!-- Onglets pour les catégories -->
     <ul class="nav nav-tabs" id="categoryTabs" role="tablist">
@@ -17,7 +17,7 @@
           [attr.aria-selected]="activeCategory === 'All'"
           (click)="setActiveCategory('All')"
         >
-          Tous
+          All
         </button>
       </li>
       <!-- Onglets spécifiques aux catégories -->
@@ -76,7 +76,7 @@
                   class="btn btn-primary btn-sm"
                   (click)="downloadImage(image)"
                 >
-                  Télécharger
+                  Download
                 </button>
                 <button
                   class="btn btn-info btn-sm mt-2"
@@ -103,7 +103,7 @@
                     class="form-check-label"
                     for="checkbox-{{ image._id }}"
                   >
-                    Sélectionner pour suppression
+                    Select for Deletion
                   </label>
                 </div>
                 <!-- Bouton et Dropdown pour assigner une catégorie -->
@@ -117,7 +117,7 @@
                       dropdowns[image._id] ? 'true' : 'false'
                     "
                   >
-                    Changer Catégorie
+                    Change Category
                   </button>
                   <!-- Dropdown des catégories -->
                   <div class="dropdown-menu show" *ngIf="dropdowns[image._id]">
@@ -173,7 +173,7 @@
                   class="btn btn-primary btn-sm"
                   (click)="downloadImage(image)"
                 >
-                  Télécharger
+                  Download
                 </button>
                 <button
                   class="btn btn-info btn-sm mt-2"
@@ -200,7 +200,7 @@
                     class="form-check-label"
                     for="checkbox-{{ image._id }}"
                   >
-                    Sélectionner pour suppression
+                    Select for Deletion
                   </label>
                 </div>
                 <!-- Bouton et Dropdown pour assigner une catégorie -->
@@ -214,7 +214,7 @@
                       dropdowns[image._id] ? 'true' : 'false'
                     "
                   >
-                    Changer Catégorie
+                    Change Category
                   </button>
                   <!-- Dropdown des catégories -->
                   <div class="dropdown-menu show" *ngIf="dropdowns[image._id]">
@@ -245,7 +245,7 @@
         (click)="deleteSelectedImages()"
         [disabled]="selectedImages.length === 0"
       >
-        Supprimer Sélectionnées
+        Delete Selected
       </button>
       <!-- Si vous souhaitez conserver le bouton de rafraîchissement manuel, vous pouvez le laisser ici -->
       <!--

@@ -1,5 +1,5 @@
 <div class="image-view-container">
-  <h2 class="title">L'image sélectionnée</h2>
+  <h2 class="title">The selected image</h2>
 
   <div class="image-wrapper">
     <img
@@ -9,21 +9,21 @@
     />
   </div>
 
-  <h3 class="filename">Tu as sélectionné : {{ filename }}</h3>
+  <!-- <h3 class="filename">Tu as sélectionné : {{ filename }}</h3> -->
 
   <div class="button-group">
     <button class="btn btn-primary" (click)="computeDescriptors(filename)">
       Compute Descriptors
     </button>
     <button class="btn btn-outline-secondary" (click)="listVisualizations()">
-      Afficher Visualizations
+        Visualizations
     </button>
     <button
       class="btn btn-success"
       (click)="simpleSearch()"
       [disabled]="!descriptorsCalculated"
     >
-      Recherche Simple
+    Simple research
     </button>
   </div>
 
@@ -70,13 +70,13 @@
     </table>
   </div>
   <div *ngIf="similarImages.length > 0" class="similar-images">
-    <h3>Images Similaires:</h3>
+    <h3>Similar Images</h3>
     <button
-      class="btn btn-warning"
+      class="btn custom-btn custom-warning"
       (click)="feedbackSearch()"
       [disabled]="!descriptorsCalculated"
     >
-      Recherche avec Retour de Pertinence
+      Search with Relevance Feedback
     </button>
 
     <div class="image-gallery">
@@ -89,13 +89,13 @@
         <p>Score de Similarité: {{ image.similarity_score.toFixed(2) }}</p>
         <div class="feedback-buttons">
           <button
-            class="btn btn-success"
+            class="btn custom-btn custom-success"
             (click)="markFeedback(image.image_id, 'relevant')"
           >
             Relevant
           </button>
           <button
-            class="btn btn-danger"
+            class="btn custom-btn custom-danger"
             (click)="markFeedback(image.image_id, 'non-relevant')"
           >
             Non-Relevant
@@ -103,5 +103,5 @@
         </div>
       </div>
     </div>
-  </div>
+</div>
 </div>

@@ -279,6 +279,66 @@ button:hover {
   color: #777;
 }
 
+/* Apply custom styles to all buttons */
+.custom-btn {
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 5px;
+  width: 100%; /* Makes the button width 100% of its container */
+  max-width: 250px; /* Max width to avoid buttons becoming too large */
+  display: inline-block; /* Aligns buttons side-by-side */
+  text-align: center; /* Centers the text */
+  transition: all 0.3s ease;
+  box-sizing: border-box; /* Includes padding in the element's width */
+}
+
+/* Customize the "warning" button */
+.custom-warning {
+text-align: start;
+  width: 100%;
+  max-width: 320px; 
+  margin-bottom: 1em; 
+  background-color: #ffcc00;
+  color: white;
+  border: 2px solid #e6b800;
+}
+
+.custom-warning:hover {
+  background-color: #e6b800;
+  border-color: #cc9900;
+}
+
+/* Customize the "success" button */
+.custom-success {
+  background-color: #28a745;
+  color: white;
+  border: 2px solid #218838;
+}
+
+.custom-success:hover {
+  background-color: #218838;
+  border-color: #1e7e34;
+}
+
+/* Customize the "danger" button */
+.custom-danger {
+  background-color: #dc3545;
+  color: white;
+  border: 2px solid #c82333;
+}
+
+.custom-danger:hover {
+  background-color: #c82333;
+  border-color: #bd2130;
+}
+
+/* Optional: Customize the button when disabled */
+.custom-btn:disabled {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+}
+
 
 
 
