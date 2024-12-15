@@ -10,6 +10,7 @@ import matplotlib
 matplotlib.use('Agg')  # Use 'Agg' backend for non-interactive plotting
 import matplotlib.pyplot as plt
 from skimage.feature import local_binary_pattern
+import numpy as np
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -206,6 +207,29 @@ def compute_descriptors(image_path):
 
     return descriptors, None
 
+def compute_feature_probabilities(feedback_entries, feature_key):
+    import numpy as np
+    from datetime import datetime
+
+    feature_values = []
+    weights = []
+
+    for feedback in feedback_entries:
+        if 'query_descriptors' in feedback and feature_key in feedback['query_descriptors']:
+            feature_values.append(np.array(feedback['query_descriptors'][feature_key], dtype=float))
+            # Amplify recent feedback weight
+            recency_weight = 10 / (1 + (datetime.utcnow() - feedback['timestamp']).total_seconds())
+            weights.append(recency_weight)
+
+    if not feature_values:
+        # Return default probabilities if no feedback exists
+        return np.ones(1)  # Uniform default vector
+
+    # Compute weighted average of feature values
+    return np.average(feature_values, axis=0, weights=weights)
+
+
+
 
 # Flask-RESTful Resource
 class Descriptor(Resource):
@@ -380,17 +404,12 @@ def simple_search():
             print("[DEBUG] No data received.")
             return jsonify({'error': 'No data received'}), 400
 
-        print(f"[DEBUG] Received data: {data}")
-
         if 'query_descriptors' not in data:
             print("[DEBUG] Missing 'query_descriptors'.")
             return jsonify({'error': 'Query descriptors are required'}), 400
 
         query_descriptors = data['query_descriptors']
-        max_results = data.get('max_results', 10)
-
-        print(f"[DEBUG] Query descriptors: {query_descriptors}")
-        print(f"[DEBUG] Max results: {max_results}")
+        max_results = data.get('max_results', 5)
 
         # Connect to MongoDB
         from pymongo import MongoClient
@@ -398,24 +417,27 @@ def simple_search():
         db = client['imagesDB']
         images_collection = db['images']
 
-        # Ensure database connection
-        print("[DEBUG] Connected to MongoDB.")
-
         # Compute similarity scores
         def compute_similarity(image_descriptors, query_descriptors):
             import numpy as np
+            def normalize(vector):
+                vector = np.array(vector, dtype=float)
+                return vector / (np.linalg.norm(vector) + 1e-8)
+
+            def cosine_similarity(vec1, vec2):
+                return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2) + 1e-8)
+
             score = 0
             if 'color_histogram' in image_descriptors and 'color_histogram' in query_descriptors:
-                score += np.linalg.norm(
-                    np.array(image_descriptors['color_histogram']) - np.array(query_descriptors['color_histogram'])
-                )
+                img_hist = normalize(image_descriptors['color_histogram'])
+                query_hist = normalize(query_descriptors['color_histogram'])
+                score += cosine_similarity(img_hist, query_hist)
             if 'dominant_colors' in image_descriptors and 'dominant_colors' in query_descriptors:
-                score += np.linalg.norm(
-                    np.array(image_descriptors['dominant_colors']) - np.array(query_descriptors['dominant_colors'])
-                )
+                img_colors = normalize(image_descriptors['dominant_colors'])
+                query_colors = normalize(query_descriptors['dominant_colors'])
+                score += cosine_similarity(img_colors, query_colors)
             return score
 
-        # Retrieve all images and calculate similarity
         results = []
         for image in images_collection.find():
             if 'descriptors' not in image:
@@ -430,7 +452,7 @@ def simple_search():
             })
 
         # Sort results by similarity score
-        results.sort(key=lambda x: x['similarity_score'])
+        results.sort(key=lambda x: x['similarity_score'], reverse=True)
 
         print(f"[DEBUG] Results: {results[:max_results]}")
 
@@ -442,6 +464,7 @@ def simple_search():
     except Exception as e:
         print(f"[ERROR] Exception occurred: {e}")
         return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
 
 from datetime import datetime
 from pymongo import MongoClient
@@ -494,54 +517,38 @@ def feedback_search():
         if not data or 'query_descriptors' not in data:
             return jsonify({'error': 'Query descriptors are required'}), 400
 
-        query_descriptors = data['query_descriptors']
-        max_results = data.get('max_results', 10)
+        # Extract query descriptors for multiple features
+        features = ['color_histogram', 'hog', 'gabor_features']  # Add more features as needed
+        query_descriptors = {feature: np.array(data['query_descriptors'][feature], dtype=float) for feature in features}
+
+        max_results = data.get('max_results', 5)
 
         client = MongoClient('mongodb://localhost:27017/')
         db = client['imagesDB']
         images_collection = db['images']
         feedback_collection = db['feedback']
 
-        # Retrieve feedback matching the current query
-        def is_similar(query1, query2, threshold=0.8):
-            """Compute similarity between two descriptor vectors."""
-            score = np.dot(np.array(query1), np.array(query2))
-            return score >= threshold
+        # Fetch the latest feedback data (limit to 50 most recent)
+        feedback_data = list(feedback_collection.find().sort("timestamp", -1).limit(50))
+        relevant_feedback = [fb for fb in feedback_data if fb['feedback'] == 'relevant']
+        non_relevant_feedback = [fb for fb in feedback_data if fb['feedback'] == 'non-relevant']
 
-        feedback_data = list(feedback_collection.find())
-        relevant_feedback = [
-            fb for fb in feedback_data
-            if is_similar(fb['query_descriptors']['color_histogram'], query_descriptors['color_histogram'])
-            and fb['feedback'] == 'relevant'
-        ]
-        non_relevant_feedback = [
-            fb for fb in feedback_data
-            if is_similar(fb['query_descriptors']['color_histogram'], query_descriptors['color_histogram'])
-            and fb['feedback'] == 'non-relevant'
-        ]
-
-        # Safely retrieve images for relevant and non-relevant feedback
-        relevant_images = [
-            images_collection.find_one({'_id': feedback['image_id']})
-            for feedback in relevant_feedback
-        ]
-        relevant_images = [img for img in relevant_images if img is not None]
-
-        non_relevant_images = [
-            images_collection.find_one({'_id': feedback['image_id']})
-            for feedback in non_relevant_feedback
-        ]
-        non_relevant_images = [img for img in non_relevant_images if img is not None]
+        # Compute prior probabilities
+        total_feedback = len(relevant_feedback) + len(non_relevant_feedback)
+        prior_relevant = len(relevant_feedback) / total_feedback if total_feedback > 0 else 0.5
+        prior_non_relevant = len(non_relevant_feedback) / total_feedback if total_feedback > 0 else 0.5
 
         # Compute feature probabilities
-        def compute_feature_probabilities(images, feature_key):
-            feature_values = [np.array(img['descriptors'][feature_key]) for img in images if feature_key in img['descriptors']]
-            if not feature_values:
-                return np.zeros_like(query_descriptors[feature_key])
-            return np.mean(feature_values, axis=0)
+        prob_relevant = {}
+        prob_non_relevant = {}
+        for feature in features:
+            prob_relevant[feature] = compute_feature_probabilities(relevant_feedback, feature)
+            prob_non_relevant[feature] = compute_feature_probabilities(non_relevant_feedback, feature)
 
-        prob_relevant = compute_feature_probabilities(relevant_images, 'color_histogram')
-        prob_non_relevant = compute_feature_probabilities(non_relevant_images, 'color_histogram')
+        # Normalize probabilities for all features
+        for feature in features:
+            prob_relevant[feature] = prob_relevant[feature] / (np.linalg.norm(prob_relevant[feature]) + 1e-8)
+            prob_non_relevant[feature] = prob_non_relevant[feature] / (np.linalg.norm(prob_non_relevant[feature]) + 1e-8)
 
         # Bayesian scoring
         results = []
@@ -549,29 +556,54 @@ def feedback_search():
             if 'descriptors' not in image:
                 continue
 
-            descriptors = np.array(image['descriptors']['color_histogram'])
-            likelihood_relevant = np.dot(descriptors, prob_relevant)
-            likelihood_non_relevant = np.dot(descriptors, prob_non_relevant)
-            relevance_score = likelihood_relevant - likelihood_non_relevant
+            relevance_score = 0  # Initialize relevance score
+            feedback_boost = 1.0  # Default boost factor
 
+            # Apply feedback prioritization
+            if str(image['_id']) in [fb['image_id'] for fb in relevant_feedback]:
+                feedback_boost = min(1.5, 1.0 + 0.1 * len(relevant_feedback))
+            elif str(image['_id']) in [fb['image_id'] for fb in non_relevant_feedback]:
+                feedback_boost = max(0.5, 1.0 - 0.1 * len(non_relevant_feedback))
+
+            # Loop through features for scoring
+            for feature in features:
+                if feature not in image['descriptors']:
+                    continue
+
+                descriptors = np.array(image['descriptors'][feature], dtype=float)
+
+                # Calculate likelihoods
+                likelihood_relevant = np.dot(descriptors, prob_relevant[feature])
+                likelihood_non_relevant = np.dot(descriptors, prob_non_relevant[feature])
+
+                # Calculate posterior probabilities
+                posterior_relevant = likelihood_relevant * prior_relevant
+                posterior_non_relevant = likelihood_non_relevant * prior_non_relevant
+
+                # Update relevance score
+                relevance_score += (
+                    0.6 * np.dot(descriptors, query_descriptors[feature]) +  # Query contribution
+                    1.4 * (posterior_relevant - posterior_non_relevant)      # Feedback adjustment
+                )
+
+            # Apply feedback boost to the final relevance score
+            relevance_score *= feedback_boost
+
+            # Store the result for the image with its relevance score
             results.append({
                 'image_id': str(image['_id']),
                 'filename': image['filename'],
                 'similarity_score': relevance_score
             })
 
-        # Sort results
+        # Sort results by relevance score
         results.sort(key=lambda x: x['similarity_score'], reverse=True)
 
-        return jsonify({
-            'status': 'success',
-            'results': results[:max_results]
-        })
+        return jsonify({'status': 'success', 'results': results[:max_results]})
 
     except Exception as e:
         print(f"[ERROR] Exception occurred: {e}")
         return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
-
 
 
 # Main App Runner

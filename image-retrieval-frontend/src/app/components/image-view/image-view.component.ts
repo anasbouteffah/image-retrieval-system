@@ -89,12 +89,12 @@ export class ImageViewComponent implements OnInit {
     const payload = {
       image_id: imageId,
       feedback: feedback,
+      query_descriptors: this.descriptors
     };
 
     this.imageService.submitFeedback(payload).subscribe({
       next: (response) => {
         console.log('Feedback submitted successfully:', response);
-        alert('Feedback saved successfully!');
       },
       error: (err) => {
         console.error('Error submitting feedback:', err);
@@ -102,20 +102,22 @@ export class ImageViewComponent implements OnInit {
       },
     });
   }
+
   feedbackSearch(): void {
     const payload = {
       query_descriptors: this.descriptors,
+      max_results: 5,
     };
+    // Log the payload before sending to ensure it's correct
+    console.log('Sending payload:', payload);
 
     this.imageService.feedbackSearch(payload).subscribe({
       next: (response) => {
-        console.log('Feedback-based similar images found:', response.results);
-        this.similarImages = response.results; // Store the refined results
-        alert('Feedback-based search completed successfully!');
+        console.log('Feedback search results:', response.results);
+        this.similarImages = response.results;
       },
       error: (err) => {
         console.error('Error during feedback search:', err);
-        alert('Failed to perform feedback-based search. Please try again.');
       },
     });
   }
